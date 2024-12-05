@@ -1,0 +1,23 @@
+{
+  "name": "getting_start",
+  "version": "1.0.0",
+  "description": "Sample app",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "author": "Avishkar Gaikwad",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "mongoose": "^8.8.3",
+    "nodemon": "^3.1.7"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2"
+  }
+}
