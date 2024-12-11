@@ -1,6 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { Video } from './video.models.js';
 
 const userSchema = new Schema({
     username: {
@@ -31,8 +32,7 @@ const userSchema = new Schema({
         required: true
     },
     refreshToken: {
-        type: String,
-        required: true
+        type: String
     },
     avtar: String, // Cloudinary link
     covrerImage: String // Cloudincary link
@@ -44,9 +44,9 @@ const userSchema = new Schema({
 
 //Don't use arrow function as callback in this, because arrow function don't have 'this' reference. So we use normal function.
 //It is hook
-userSchema.pre("save", function (next) {
+userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) return next();
-    this.password = bcrypt.hash(this.password, 10);
+    this.password = await bcrypt.hash(this.password, 10);
     next();
 })
 
