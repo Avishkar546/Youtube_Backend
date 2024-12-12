@@ -23,7 +23,7 @@ export const registerUserController = asyncHandler(async (req, res) => {
 
     let file = req.files;
     let avatarPath = file?.avatar[0]?.path;
-    let covrerImagePath = file?.cover[0]?.path;
+    let covrerImagePath = file?.cover?.cover[0]?.path;
     if (!avatarPath) {
         throw new ApiError(400, "File upload failed");
     }

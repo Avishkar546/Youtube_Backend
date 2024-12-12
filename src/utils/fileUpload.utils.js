@@ -18,6 +18,7 @@ export async function uploadToCloudinary(filepath) {
     try {
         // Upload the image
         const result = await cloudinary.uploader.upload(filepath, options);
+        fs.unlinkSync(filepath);
         return result.secure_url;
     } catch (error) {
         console.error(error.message);
