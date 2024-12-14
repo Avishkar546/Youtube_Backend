@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUserController, logoutUserController, registerUserController } from "../controller/user.controller.js";
+import { loginUserController, logoutUserController, refreshAccessToken, registerUserController } from "../controller/user.controller.js";
 import { upload } from '../middlewares/multer.middleware.js';
 import { verifyJWT } from '../middlewares/auth.middleware.js';
 
@@ -10,6 +10,7 @@ router.post('/register', upload.fields([
     { name: 'cover', maxCount: 1 }
 ]), registerUserController);
 router.route("/login").post(loginUserController);
+router.route("/refreshToken").get(refreshAccessToken)
 
 
 // Secured Routes

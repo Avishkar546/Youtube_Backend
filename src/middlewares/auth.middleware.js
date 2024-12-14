@@ -16,12 +16,17 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
         throw new ApiError(401, "Unauthorized access");
     }
 
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await User.findById(decodedToken._id);
-    if (!user) {
-        throw new Error(401, "Unauthorized access");
-    }
+    try {
+        const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+        const user = await User.findById(decodedToken._id);
+        if (!user) {
+            throw new ApiError(401, "Unauthorized access");
+        }
 
-    req.user = user;
-    next();
+        req.user = user;
+        next();
+    } catch (error) {
+        throw new ApiError(401, error?.message || "Unauthorized access");
+
+    }
 })
