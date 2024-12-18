@@ -3,7 +3,7 @@ import { ApiResponse } from "../utils/apiResponse.utils.js";
 import { asyncHandler } from "../utils/asyncHandler.utils.js";
 import { uploadToCloudinary } from "../utils/fileUpload.utils.js";
 import { User } from './../models/user.models.js';
-import { jwt } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 
 export const registerUserController = asyncHandler(async (req, res) => {
@@ -41,7 +41,7 @@ export const registerUserController = asyncHandler(async (req, res) => {
         email,
         fullName,
         password,
-        avtar: cloudinary_avatar_url,
+        avatar: cloudinary_avatar_url,
         covrerImage: cloudinary_cover_url || "",
 
     });
@@ -53,7 +53,7 @@ export const registerUserController = asyncHandler(async (req, res) => {
     }
 
     return res.status(201).json(new ApiResponse(200, "User registered successfully", user));
-})
+});
 
 export const loginUserController = asyncHandler(async (req, res) => {
     const { username, email, password } = req.body;
@@ -94,7 +94,7 @@ export const loginUserController = asyncHandler(async (req, res) => {
     return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", refreshToken, options).json(
         new ApiResponse(200, "Loggedin succesfully", { user, accessToken, refreshToken })
     );
-})
+});
 
 export const logoutUserController = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, {
@@ -114,9 +114,9 @@ export const logoutUserController = asyncHandler(async (req, res) => {
 
     return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).
         json(new ApiResponse(200, "logout succesfully", {}))
-})
+});
 
-export const refreshAccessToken = asyncHandler(async (req, res) => {
+export const refreshAccessTokenController = asyncHandler(async (req, res) => {
     let incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken;
     if (!incomingRefreshToken) {
         throw new ApiError(401, "Unauthorized access");
@@ -154,4 +154,55 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     } catch (error) {
         throw new ApiError(401, error?.message || "Invalid refresh token");
     }
+});
+
+export const changePasswordController = asyncHandler(async (req, res) => {
+    let { _id } = req.user;
+    const { new_password } = req.body;
+
+    if (!new_password || new_password.length < 8) {
+        throw new ApiError(400, "Password should be atleast 8 characters");
+    }
+
+    let user = await User.findById(_id);
+    if (!user) {
+        throw new ApiError(404, "User does not exist");
+    }
+
+    user.password = new_password;
+    await user.save();
+    res.status(201).json(new ApiResponse(201, "Password updated succesfully"));
+});
+
+export const getCurrentUserController = asyncHandler(async (req, res) => {
+    res.status(200).json(new ApiResponse(200, req.user, "user fetched successfully"));
+});
+
+export const changeAvatarController = asyncHandler(async (req, res) => {
+    const filepath = req.files?.avatar?.[0]?.path;
+    if (!filepath) {
+        throw new ApiError(400, "File is missing");
+    }
+
+    const url = await uploadToCloudinary(filepath);
+    if (!url) {
+        throw new ApiError(500, "Failed to upload file to cloudinary");
+    }
+
+    const { _id } = req.user;
+    const user = await User.findByIdAndUpdate(_id, {
+        $set: {
+            avatar: url
+        }
+    }, {
+        new: true
+    },).select("-password -refreshToken");
+
+    if (!user) {
+        throw new ApiError(400, "User does not exist to update profile picture");
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, "Updated succesfully", user)
+    );
 })

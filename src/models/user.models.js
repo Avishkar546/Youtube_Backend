@@ -34,7 +34,7 @@ const userSchema = new Schema({
     refreshToken: {
         type: String
     },
-    avtar: String, // Cloudinary link
+    avatar: String, // Cloudinary link
     covrerImage: String // Cloudincary link
 },
     {
@@ -45,13 +45,14 @@ const userSchema = new Schema({
 //Don't use arrow function as callback in this, because arrow function don't have 'this' reference. So we use normal function.
 //It is hook
 userSchema.pre("save", async function (next) {
-    if (!this.isModified("password")) return next();
-    this.password = await bcrypt.hash(this.password, 10);
+    if (this.isModified("password")) {
+        const salt = await bcrypt.genSalt();
+        this.password = await bcrypt.hash(this.password, 10);
+    }
     next();
 })
 
 userSchema.methods.isPasswordCorrect = async function (password) {
-    console.log("Password in check: ", password);
     return await bcrypt.compare(password, this.password);
 }
 
