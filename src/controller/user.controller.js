@@ -1,3 +1,6 @@
+import mongoose from "mongoose";
+import { subscription } from "../models/subscription.models.js";
+import { Video } from "../models/video.models.js";
 import { ApiError } from "../utils/apiError.utils.js";
 import { ApiResponse } from "../utils/apiResponse.utils.js";
 import { asyncHandler } from "../utils/asyncHandler.utils.js";
@@ -175,7 +178,7 @@ export const changePasswordController = asyncHandler(async (req, res) => {
 });
 
 export const getCurrentUserController = asyncHandler(async (req, res) => {
-    res.status(200).json(new ApiResponse(200, req.user, "user fetched successfully"));
+    res.status(200).json(new ApiResponse(200, "user fetched successfully", req.user));
 });
 
 export const changeAvatarController = asyncHandler(async (req, res) => {
@@ -205,4 +208,127 @@ export const changeAvatarController = asyncHandler(async (req, res) => {
     return res.status(200).json(
         new ApiResponse(200, "Updated succesfully", user)
     );
-})
+});
+
+export const getProfileController = asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    console.log("In get profile controller");
+    if (!username) {
+        throw new ApiError(400, "Username required");
+    }
+
+    //1. Get no. of subscribers of your channel
+    // - match with channel
+    //2. Get no. of subscribed channels
+    let channel = await User.aggregate([
+        {
+            $match: {
+                username: username.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscriber_list"
+            }
+
+        },
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscribed_list"
+            }
+        },
+        {
+            $addFields: {
+                subscriber_count: { $size: "$subscriber_list" },
+                subscribedTo_count: { $size: "$subscribed_list" },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscriber_list"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        }, {
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscriber_count: 1,
+                subscribedTo_count: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1
+            }
+        }
+    ]);
+    console.log(channel);
+
+    if (!channel?.length) {
+        throw new ApiError(404, "Channel does not exist");
+    }
+
+    return res.status(200).json(new ApiResponse(200, "User fetched successfully", channel[0]));
+
+});
+
+export const getWatchHistoryController = asyncHandler(async (req, res) => {
+    // 1. Get userid from req.user -> watch_history array
+    // 2. Map over array and get the details
+    let channel = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req?.user?._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watch_history",
+                foreignField: "_id",
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "channelForVideos",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        username: 1,
+                                        fullName: 1,
+                                        avatar: 1,
+                                        coverImage: 1,
+                                        email: 1
+                                    }
+                                },
+                                {
+                                    $addFields: {
+                                        owner: { $first: "$channelForVideos" }
+                                    }
+                                }
+                            ]
+                        },
+                    },
+                    {
+                        // $project: {
+                        //     channelForVideos: 0
+                        // }
+                    }
+                ]
+            }
+
+        }
+    ]);
+
+    console.log(channel);
+
+    return res.status(200).json(new ApiResponse(200, "channel details", channel[0].watchHistory));
+});

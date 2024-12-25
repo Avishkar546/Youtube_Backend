@@ -35,7 +35,7 @@ const userSchema = new Schema({
         type: String
     },
     avatar: String, // Cloudinary link
-    covrerImage: String // Cloudincary link
+    coverImage: String // Cloudincary link
 },
     {
         timestamps: true
